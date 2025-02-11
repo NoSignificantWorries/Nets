@@ -1,0 +1,4 @@
+Domain,IP,Lost pakages,Time,rtt
+google.com,74.125.131.102,0,2003.0,rtt min/avg/max/mdev = 58.288/62.821/67.226/3.650 ms
+archlinux.org,95.217.163.246,0,2002.0,rtt min/avg/max/mdev = 73.060/73.533/74.458/0.654 ms
+123.0.0.1,,,,
