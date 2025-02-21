@@ -4,134 +4,133 @@ import csv
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.support import expected_conditions as EC
 from bs4 import BeautifulSoup
 
 
-def scroll_and_click(driver, button, scrolling=True):
-    if button is None:
-        return "None element"
-    button_classes = button.get("class")
-    for class_name in button_classes:
-        clickable_button = driver.find_element(By.CLASS_NAME, class_name)
-        if clickable_button is not None:
-            if scrolling:
-                try:
-                    driver.execute_script("arguments[0].scrollIntoView(true);", clickable_button)
-                    time.sleep(1)
-                except Exceprion as error:
-                    return error
-            clickable_button.click()
-            break
-    return None
+class WildberriesCSS:
+    SEARCH_BOX = "input.search-catalog__input"
+    COOKIES_BUTTON = "button.cookies__btn"
+    PAGINATION_NEXT_BUTTON = "a.pagination-next"
+    CARD_OBJECT = "article"
+    # 0 - read as attribute of container
+    # 1 - read text from container
+    CARD_PARSING_WAYS = [
+        ("data-nm-id", 0),
+        ("div > div.product-card__middle-wrap > div.product-card__price > span.price__wrap > ins", 1),
+        ("div > div.product-card__middle-wrap > h2.product-card__brand-wrap > span.product-card__brand-container > span", 1),
+        ("div > div.product-card__middle-wrap > h2.product-card__brand-wrap > span.product-card__name", 1)
+    ]
+    '''
+    CARD_PARSING_TREE = [
+        "data-nm-id",
+        {"div": [{
+            "div.product-card__middle-wrap": [{
+                "div.product-card__price": [{
+                    "span.price__wrap": {
+                        "ins": None
+                    }
+                }],
+                "h2.product-card__brand-wrap": [{
+                    "span.product-card__brand-container": [{
+                        "span": None
+                    }],
+                    "span.product-card__name": [{
+                        "span": None
+                    }]
+                }]
+            }]
+        }]}
+    ]
+    '''
 
 
-def parse_product(driver):
-    html = driver.page_source
-    soup = BeautifulSoup(html, 'html.parser')
+class Parser:
+    def __init__(self, driver, url, css_objects, delay=5, csvfile="result.csv"):
+        self.driver = driver
+        self.driver.get(url)
+        self.css_objects = css_objects
+        self.csv_file = open(csvfile, "w")
+        self.csv_writer = csv.writer(self.csv_file, delimiter=",", quotechar='"', quoting=csv.QUOTE_MINIMAL)
+        self.csv_writer.writerow(["ID", "Price", "Company", "Name"])
+        time.sleep(delay)
 
-    description_button = None
-    buttons = soup.find_all('button')
-    for button in buttons:
-        if button.get("aria-label") == "Характеристики и описание":
-            description_button = button
+    def quit(self, delay=3):
+        self.csv_file.close()
+        time.sleep(delay)
+        self.driver.quit()
 
-    error = scroll_and_click(driver, description_button)
-    if error is not None:
-        print(f"Error: {errors}")
+    def find_product(self, request, delay=2):
+        search_box = self.find_element_by_css(self.css_objects.SEARCH_BOX)
+        if search_box is None:
+            raise "SerchBox element missed!"
+        search_box.clear()
+        search_box.send_keys(request)
+        search_box.send_keys(Keys.RETURN)
+        time.sleep(delay)
 
-    return None
+    def scroll_to_element(self, element, delay=2):
+        driver.execute_script("window.scrollBy(0,document.body.scrollHeight)")
+        time.sleep(1)
+        driver.execute_script("arguments[0].scrollIntoView(true);", element)
+        time.sleep(delay)
 
+    def find_element_by_css(self, element_css):
+        try:
+            return self.driver.find_element(By.CSS_SELECTOR, element_css)
+        except BaseException as error:
+            return None
 
-def parse_cards(driver, csv_writer):
-    html = driver.page_source
-    soup = BeautifulSoup(html, 'html.parser')
+    def find_all_elements_by_css(self, element_css):
+        try:
+            find_function = EC.presence_of_all_elements_located((By.CSS_SELECTOR, element_css))
+            return find_function(self.driver)
+        except BaseException as error:
+            return None
 
-    for card in soup.find_all("article"):
-        row = []
-        card_id = card.get("data-nm-id")
-        if card_id is None:
-            continue
-        row.append(card_id)
-        row.append(card.find("ins").text.strip().replace("\xa0", " "))
-        for span in card.find_all("span"):
-            classes = span.get("class")
-            if classes is None:
-                continue
-            if classes[0] == "product-card__brand":
-                row.append(span.text.strip())
-            if classes[0] == "product-card__name":
-                row.append(span.text.strip()[2:])
-        csv_writer.writerow(row)
+    def parse_cards_on_page(self):
+        cards = self.find_all_elements_by_css(self.css_objects.CARD_OBJECT)
+        if cards is None:
+            raise "Cards parsing error!"
+        for card in cards:
+            row = []
+            for way, type_id in self.css_objects.CARD_PARSING_WAYS:
+                if type_id == 0:
+                    row.append(card.get_attribute(way))
+                if type_id == 1:
+                    text_from_container = card.find_element(By.CSS_SELECTOR, way).text
+                    text_from_container = text_from_container.replace("/ ", "")
+                    row.append(text_from_container)
+            if None not in row:
+                self.csv_writer.writerow(row)
 
-
-def pagination(driver):
-    html = driver.page_source
-    soup = BeautifulSoup(html, 'html.parser')
-
-    pagination_next = driver.find_element(By.CSS_SELECTOR, "a.pagination-next")
-    try:
-        for _ in range(2):
-            driver.execute_script("window.scrollTo(0, document.body.scrollHeight)")
-            time.sleep(1)
-    except Exceprion as error:
-        return error
-    pagination_next.click()
+    def pagination_next(self, delay=2):
+        pagination_button = self.find_element_by_css(self.css_objects.PAGINATION_NEXT_BUTTON)
+        if pagination_button is None:
+            raise "Pagination button missed!"
+        self.scroll_to_element(pagination_button, delay)
+        pagination_button.click()
 
 
 # START PROGRAM
 if __name__ == "__main__":
     driver = webdriver.Firefox()
-    driver.get("https://www.wildberries.ru")
-    time.sleep(8)
+    parser = Parser(driver, "https://www.wildberries.ru", WildberriesCSS, 6)
 
-    # Parse and click coockies button {{{
-    html = driver.page_source
-    soup = BeautifulSoup(html, "html.parser")
+    cookies_button = parser.find_element_by_css(WildberriesCSS.COOKIES_BUTTON)
+    if cookies_button is not None:
+        cookies_button.click()
 
-    okey_button = None
-    buttons = soup.find_all('button')
-    for button in buttons:
-        if button.text.strip() == "Окей":
-            okey_button = button
-    error = scroll_and_click(driver, okey_button, False)
-    if error is not None:
-        print(f"Error: {errors}")
-    # }}}
+    parser.find_product("стрелы для лука")
 
-    request = "стрелы для лука"
+    n = 3
+    for i in range(n):
+        print(f"Parsing cards o page {i + 1}/{n}...")
+        parser.parse_cards_on_page()
+        print("Page parsing done.")
+        if i + 1 < n:
+            parser.pagination_next()
 
-    # Find products {{{
-    for input_element in soup.find_all("input"):
-        if input_element.get("type") == "search" and input_element.get("id") == "searchInput":
-            search_box_element = input_element
-            break
+    parser.quit()
 
-    for search_class in search_box_element.get("class"):
-        element = driver.find_element(By.CLASS_NAME, search_class)
-        if element is not None:
-            element.clear()
-            element.send_keys(request)
-            element.send_keys(Keys.RETURN)
-            break
-    # }}}
-
-    time.sleep(3)
-    max_pages = 4
-
-    # Parse pages and products {{{
-
-    result_file = open("result.csv", "w")
-    writer = csv.writer(result_file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
-    writer.writerow(["ID", "Price", "Company", "Name"])
-
-    for i_page in range(max_pages):
-        print(f"Parsing page {i_page + 1}/{max_pages}...")
-        parse_cards(driver, writer)
-        print("Parsing done.")
-        pagination(driver)
-        time.sleep(1)
-
-    result_file.close()
-
-    # }}}
 
