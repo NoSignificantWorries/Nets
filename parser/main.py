@@ -111,9 +111,7 @@ class Parser:
         pagination_button.click()
 
 
-# START PROGRAM
 if __name__ == "__main__":
-    driver = webdriver.Firefox()
     parser = Parser(driver, "https://www.wildberries.ru", WildberriesCSS, 6)
 
     cookies_button = parser.find_element_by_css(WildberriesCSS.COOKIES_BUTTON)
@@ -131,5 +129,4 @@ if __name__ == "__main__":
             parser.pagination_next()
 
     parser.quit()
-
 
