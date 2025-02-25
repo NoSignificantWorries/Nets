@@ -5,7 +5,7 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.firefox.options import Options
 
 
 class WildberriesCSS:
@@ -113,10 +113,13 @@ class Parser:
 
 
 if __name__ == "__main__":
+    '''
     options = Options()
     options.add_argument("--headless")
 
-    driver = webdriver.Firefox()#options=options)
+    driver = webdriver.Firefox(options=options)
+    '''
+    driver = webdriver.Firefox()
     parser = Parser(driver, "https://www.wildberries.ru", WildberriesCSS, 6)
 
     cookies_button = parser.find_element_by_css(WildberriesCSS.COOKIES_BUTTON)
