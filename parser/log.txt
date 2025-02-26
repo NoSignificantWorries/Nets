@@ -1,1 +1,0 @@
-Reached error page: about:neterror?e=dnsNotFound&u=https%3A//www.wildberries.rdf/&c=UTF-8&d=We%20can%E2%80%99t%20connect%20to%20the%20server%20at%20www.wildberries.rdf.
