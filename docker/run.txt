@@ -1,0 +1,2 @@
+docker exec -it test psql -h localhost -U dmitry -d docker_app -p 5432
+
