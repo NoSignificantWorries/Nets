@@ -1,3 +1,8 @@
+Сборка контейнера для приложения:
 docker build -t my-app .
+
+Запуск контейнера postgresql:
 docker run --name my-postgres --network my-network -p 5433:5432 -e POSTGRES_USER=dmitry -e POSTGRES_PASSWORD=5364 -d postgres
+
+Запуск контейнера приложения:
 docker run --name my-app --network my-network -p 5555:5555 -e DATABASE_URL=postgresql://dmitry:5364@my-postgres:5432/dockerdb -d my-app
