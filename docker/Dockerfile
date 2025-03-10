@@ -2,14 +2,12 @@ FROM continuumio/miniconda3
 
 WORKDIR /app
 
-SHELL ["/bin/bash", "--login", "-c"]
+COPY environment.yml .
+RUN conda env create -f environment.yml
 
-COPY api_env.yaml .
-RUN conda env create -f api_env.yaml
+SHELL ["conda", "run", "-n", "nets2", "/bin/bash", "-c"]
 
-RUN conda init bash
+EXPOSE 5555
 
-RUN conda activate nets
-
-COPY app.py .
-ENTRYPOINT ["python3", "app.py"]
+COPY *.py .
+ENTRYPOINT ["conda", "run", "--no-capture-output", "-n", "nets2", "python", "app.py"]
